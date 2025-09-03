@@ -154,3 +154,4 @@ rtbhouse.com, 7VQaL76PBynk7Hu4jror, RESELLER, 4f3b94578e85950c
 adyoulike.com, 4d5014f8da11fc0a70ebbda5d4537935, RESELLER
 axonix.com, 59204, RESELLER
 bidmachine.io, 1201, RESELLER
+google.com, pub-4865776169330826, DIRECT, f08c47fec0942fa0
