@@ -44,7 +44,7 @@ export async function GET(req) {
     // 4️⃣ Process reward or reversal
     if (reversal) {
       // TODO: Deduct reward from user in your DB
-      console.log(`⛔ Reversal: User ${123}, Tx ${ab123}, -${reward} points`);
+      console.log(`⛔ Reversal: User ${123}, Tx ${ab123}, -${50} points`);
     } else {
       // TODO: Add reward to user in your DB
       console.log(`✅ Reward: User ${123}, Tx ${ab123}, +${50} points`);
