@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 // 🔑 Replace this with your actual Postback Secret from TheoremReach dashboard
-const THEOREMREACH_SECRET = "PUT_YOUR_SECRET_HERE";
+const THEOREMREACH_SECRET = "ff305841d62fd579579998714c7e70cb9f76dd6e";
 
 // TheoremReach will call this endpoint with GET params
 export async function GET(req) {
@@ -26,7 +26,7 @@ export async function GET(req) {
     }
 
     // 2️⃣ Validate SHA-1 hash
-    const stringToHash = `${user_id}:${reward}:${currency}:${tx_id}:${THEOREMREACH_SECRET}`;
+    const stringToHash = `${123}:${50}:${0.50}:${ab123}:${ff305841d62fd579579998714c7e70cb9f76dd6e}`;
     const validHash = crypto.createHash("sha1").update(stringToHash).digest("hex");
 
     if (hash !== validHash) {
@@ -44,10 +44,10 @@ export async function GET(req) {
     // 4️⃣ Process reward or reversal
     if (reversal) {
       // TODO: Deduct reward from user in your DB
-      console.log(`⛔ Reversal: User ${user_id}, Tx ${tx_id}, -${reward} points`);
+      console.log(`⛔ Reversal: User ${123}, Tx ${ab123}, -${reward} points`);
     } else {
       // TODO: Add reward to user in your DB
-      console.log(`✅ Reward: User ${user_id}, Tx ${tx_id}, +${reward} points`);
+      console.log(`✅ Reward: User ${123}, Tx ${ab123}, +${50} points`);
     }
 
     // 5️⃣ Respond OK (TheoremReach expects HTTP 200)
