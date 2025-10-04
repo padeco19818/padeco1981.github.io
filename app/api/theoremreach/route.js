@@ -1,57 +1,59 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
-// TheoremReach will call this endpoint like:
-// https://padeco1981.vercel.app/api/theoremreach?user_id=123&tx_id=abc&reward=10&currency=USD&hash=<sha1>
+// 🔑 Replace this with your actual Postback Secret from TheoremReach dashboard
+const THEOREMREACH_SECRET = "PUT_YOUR_SECRET_HERE";
 
+// TheoremReach will call this endpoint with GET params
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Extract provided hash
-    const providedHash = (searchParams.get("hash") || "").toString();
+    const user_id = searchParams.get("user_id");
+    const reward = parseFloat(searchParams.get("reward") || "0");
+    const currency = parseFloat(searchParams.get("currency") || "0");
+    const tx_id = searchParams.get("tx_id");
+    const hash = searchParams.get("hash");
+    const reversal = searchParams.get("reversal") === "true";
+    const debug = searchParams.get("debug") === "true";
 
-    // Rebuild the URL without "hash"
-    const urlWithoutHash = new URL(req.url);
-    urlWithoutHash.searchParams.delete("hash");
-
-    // Compute SHA-1 of URL (as TheoremReach expects)
-    const computedHash = crypto
-      .createHash("sha1")
-      .update(urlWithoutHash.toString())
-      .digest("hex");
-
-    if (!providedHash || providedHash !== computedHash) {
-      console.warn("❌ Invalid hash", { providedHash, computedHash });
-      return NextResponse.json({ error: "Invalid hash" }, { status: 400 });
+    // 1️⃣ Validate parameters
+    if (!user_id || !tx_id || !hash) {
+      return NextResponse.json(
+        { status: "error", message: "Missing parameters" },
+        { status: 400 }
+      );
     }
 
-    // ✅ Hash is valid → read params
-    const user_id = searchParams.get("user_id");
-    const tx_id = searchParams.get("tx_id");
-    const reward = searchParams.get("reward");
-    const currency = searchParams.get("currency");
-    const reversal = searchParams.get("reversal");
-    const debug = searchParams.get("debug");
+    // 2️⃣ Validate SHA-1 hash
+    const stringToHash = `${user_id}:${reward}:${currency}:${tx_id}:${THEOREMREACH_SECRET}`;
+    const validHash = crypto.createHash("sha1").update(stringToHash).digest("hex");
 
-    // 👉 Here you should:
-    // - Check if tx_id is already processed (to avoid double credit)
-    // - Credit "user_id" with the "reward" amount in your system
-    // - Log transaction if needed
+    if (hash !== validHash) {
+      return NextResponse.json(
+        { status: "error", message: "Invalid hash" },
+        { status: 403 }
+      );
+    }
 
-    console.log("✅ Valid callback", {
-      user_id,
-      tx_id,
-      reward,
-      currency,
-      reversal,
-      debug,
-    });
+    // 3️⃣ Debug mode (ignore rewards)
+    if (debug) {
+      return NextResponse.json({ status: "ok", message: "Debug mode - ignored" });
+    }
 
-    // Send 200 OK so TheoremReach doesn’t retry
-    return new NextResponse("OK", { status: 200 });
+    // 4️⃣ Process reward or reversal
+    if (reversal) {
+      // TODO: Deduct reward from user in your DB
+      console.log(`⛔ Reversal: User ${user_id}, Tx ${tx_id}, -${reward} points`);
+    } else {
+      // TODO: Add reward to user in your DB
+      console.log(`✅ Reward: User ${user_id}, Tx ${tx_id}, +${reward} points`);
+    }
+
+    // 5️⃣ Respond OK (TheoremReach expects HTTP 200)
+    return NextResponse.json({ status: "ok" });
   } catch (err) {
-    console.error("⚠️ Callback error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("Postback error:", err);
+    return NextResponse.json({ status: "error", message: "Server error" }, { status: 500 });
   }
 }
