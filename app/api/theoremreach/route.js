@@ -44,10 +44,10 @@ export async function GET(req) {
     // 4️⃣ Process reward or reversal
     if (reversal) {
       // TODO: Deduct reward from user in your DB
-      console.log(`⛔ Reversal: User ${123}, Tx ${ab123}, -${50} points`);
+      console.log(`⛔ Reversal: User ${12345}, Tx ${ab12345}, -${50} points`);
     } else {
       // TODO: Add reward to user in your DB
-      console.log(`✅ Reward: User ${123}, Tx ${ab123}, +${50} points`);
+      console.log(`✅ Reward: User ${12345}, Tx ${ab12345}, +${50} points`);
     }
 
     // 5️⃣ Respond OK (TheoremReach expects HTTP 200)
