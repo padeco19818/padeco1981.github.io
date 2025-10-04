@@ -1,59 +1,61 @@
-import crypto from "crypto";
-import { NextResponse } from "next/server";
+const express = require('express');
+const crypto = require('crypto');
+const axios = require('axios');
+const app = express();
+const port = 3000;
 
-// 🔑 Replace this with your actual Postback Secret from TheoremReach dashboard
-const THEOREMREACH_SECRET = "ff305841d62fd579579998714c7e70cb9f76dd6e";
+// App constants
+const APP_ID = "24178";
+const REWARD = "25";
+const CURRENCY = "0.50";
+const SECRET_KEY = "ff305841d62fd579579998714c7e70cb9f76dd6e";
+const OFFER_ID = "test_campaign";
 
-// TheoremReach will call this endpoint with GET params
-export async function GET(req) {
-  try {
-    const { searchParams } = new URL(req.url);
+// Endpoint to trigger TheoremReach postback
+app.get('/theoremreach-postback', async (req, res) => {
+    const user_id = req.query.user_id;
+    const tx_id = req.query.tx_id;
+    const ip = req.query.ip || req.ip;
 
-    const user_id = searchParams.get("user_id");
-    const reward = parseFloat(searchParams.get("reward") || "0");
-    const currency = parseFloat(searchParams.get("currency") || "0");
-    const tx_id = searchParams.get("tx_id");
-    const hash = searchParams.get("hash");
-    const reversal = searchParams.get("reversal") === "true";
-    const debug = searchParams.get("debug") === "true";
-
-    // 1️⃣ Validate parameters
-    if (!user_id || !tx_id || !hash) {
-      return NextResponse.json(
-        { status: "error", message: "Missing parameters" },
-        { status: 400 }
-      );
+    if(!user_id || !tx_id){
+        return res.status(400).send("Missing user_id or tx_id");
     }
 
-    // 2️⃣ Validate SHA-1 hash
-    const stringToHash = `${123}:${50}:${0.50}:${ab123}:${ff305841d62fd579579998714c7e70cb9f76dd6e}`;
-    const validHash = crypto.createHash("sha1").update(stringToHash).digest("hex");
+    // Generate SHA256 hash
+    const hashString = user_id + APP_ID + REWARD + CURRENCY + SECRET_KEY;
+    const hash = crypto.createHash('sha256').update(hashString).digest('hex');
 
-    if (hash !== validHash) {
-      return NextResponse.json(
-        { status: "error", message: "Invalid hash" },
-        { status: 403 }
-      );
+    // Build TheoremReach URL
+    const postbackUrl = `https://padeco1981.github.io/app/api/theoremreach/route.js` +
+        `?user_id=${user_id}` +
+        `&app_id=${APP_ID}` +
+        `&reward=${REWARD}` +
+        `&status=1` +
+        `&currency=${CURRENCY}` +
+        `&screenout=0` +
+        `&profiler=0` +
+        `&tx_id=${tx_id}` +
+        `&ip=${ip}` +
+        `&offer_id=${OFFER_ID}` +
+        `&debug=true` +
+        `&hash=${hash}`;
+
+    try {
+        // Automatically call the postback
+        const response = await axios.get(postbackUrl);
+        res.send({
+            message: "Postback sent successfully",
+            postbackUrl,
+            theoremReachResponse: response.data
+        });
+    } catch (error) {
+        res.status(500).send({
+            message: "Error sending postback",
+            error: error.message
+        });
     }
+});
 
-    // 3️⃣ Debug mode (ignore rewards)
-    if (debug) {
-      return NextResponse.json({ status: "ok", message: "Debug mode - ignored" });
-    }
-
-    // 4️⃣ Process reward or reversal
-    if (reversal) {
-      // TODO: Deduct reward from user in your DB
-      console.log(`⛔ Reversal: User ${12345}, Tx ${ab12345}, -${50} points`);
-    } else {
-      // TODO: Add reward to user in your DB
-      console.log(`✅ Reward: User ${12345}, Tx ${ab12345}, +${50} points`);
-    }
-
-    // 5️⃣ Respond OK (TheoremReach expects HTTP 200)
-    return NextResponse.json({ status: "ok" });
-  } catch (err) {
-    console.error("Postback error:", err);
-    return NextResponse.json({ status: "error", message: "Server error" }, { status: 500 });
-  }
-}
+app.listen(port, () => {
+    console.log(`TheoremReach postback server running at http://localhost:${port}`);
+});
