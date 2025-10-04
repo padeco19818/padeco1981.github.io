@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TimeWall Login</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #timewall-container {
+      width: 100%;
+      position: relative;
+      min-height: 100px;
+    }
+
+    iframe {
+      width: 100%;
+      border: 0;
+      display: block;
+    }
+
+    /* Loader style */
+    .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 16px;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="timewall-container">
+    <div class="loader" id="loader">Loading TimeWall...</div>
+  </div>
+
+  <script>
+    const oid = "b6383db6f92ac10e"; // Your TimeWall organization ID
+
+    // Function to get a cookie by name
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    // Universal detection of user ID
+    const currentUserId = window.currentUserId || sessionStorage.getItem("user_id") || localStorage.getItem("user_id") || getCookie("user_id");
+
+    const container = document.getElementById("timewall-container");
+    const loader = document.getElementById("loader");
+
+    if (!currentUserId) {
+      container.innerHTML = "<p>User ID not found. Please log in first.</p>";
+    } else {
+      const iframe = document.createElement("iframe");
+      iframe.id = "timewall-iframe";
+      iframe.title = "TimeWall";
+      iframe.src = `https://timewall.io/users/login?oid=${oid}&uid=${currentUserId}`;
+      iframe.scrolling = "no";
+
+      container.appendChild(iframe);
+
+      // Hide loader when iframe fully loads
+      iframe.onload = () => {
+        if (loader) loader.style.display = "none";
+      };
+
+      // 1️⃣ Listen for postMessage from TimeWall iframe
+      window.addEventListener("message", function(event) {
+        if (event.origin === "https://timewall.io" && event.data.height) {
+          iframe.style.height = event.data.height + "px";
+        }
+      }, false);
+
+      // 2️⃣ Fallback polling for cross-origin height
+      const fallbackInterval = setInterval(() => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          if (iframeDoc && iframeDoc.body) {
+            const newHeight = iframeDoc.body.scrollHeight;
+            if (newHeight && iframe.style.height != newHeight + "px") {
+              iframe.style.height = newHeight + "px";
+            }
+          }
+        } catch (e) {
+          // Cross-origin restriction, do nothing (postMessage will handle if available)
+        }
+      }, 500);
+
+      // Stop polling after 15 seconds
+      setTimeout(() => clearInterval(fallbackInterval), 15000);
+    }
+  </script>
+</body>
+</html>
