@@ -167,3 +167,6 @@ sonobi.com, 18a95783cc, reseller, d1a215d9eb5aee9e
 152media.info, 152m1134, reseller
 app-stock.com, 509221, reseller, ed8c126ea5971415
 google.com, pub-3821646558467272, DIRECT, f08c47fec0942fa0
+uis.mobfox.com, 2290, reseller, 5529a3d1f59865be
+kidoz.net, 15568, reseller, a109366414b7335e
+pubmatic.com, 165708, reseller, 5d62403b186f2ace
