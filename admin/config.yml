@@ -1,1 +1,154 @@
+# confirm.yml - Configuration Schema for Auto-Save Validation
+# This file defines validation rules for the auto-save system configuration
 
+system:
+  name:
+    required: true
+    description: "Name of the system associated with the server."
+    type: "str"
+    default: "Story Admin System"
+
+autosave:
+  enabled:
+    required: true
+    type: "bool"
+    default: true
+    description: "Enable or disable auto-save functionality"
+
+  interval_seconds:
+    required: true
+    type: "int"
+    default: 5
+    min: 2
+    max: 60
+    description: "Interval between auto-save attempts (in seconds)"
+
+  storage_type:
+    required: true
+    type: "str"
+    default: "localStorage"
+    enum: ["localStorage", "sessionStorage", "indexedDB"]
+    description: "Storage mechanism for draft persistence"
+
+draft:
+  enabled:
+    required: true
+    type: "bool"
+    default: true
+    description: "Enable draft recovery feature"
+
+  expiry_days:
+    required: true
+    type: "int"
+    default: 7
+    min: 1
+    max: 30
+    description: "Number of days to keep unsaved drafts"
+
+  max_drafts_per_user:
+    required: false
+    type: "int"
+    default: 10
+    min: 1
+    max: 50
+    description: "Maximum number of drafts to store per user"
+
+recovery:
+  show_banner_on_load:
+    required: true
+    type: "bool"
+    default: true
+    description: "Show draft recovery banner when unsaved draft exists"
+
+  before_unload_warning:
+    required: true
+    type: "bool"
+    default: true
+    description: "Show warning when navigating away with unsaved changes"
+
+  conflict_resolution:
+    required: false
+    type: "str"
+    default: "newer_wins"
+    enum: ["newer_wins", "prompt_user", "keep_both"]
+    description: "How to resolve conflicts between local and server versions"
+
+storage:
+  key_prefix:
+    required: false
+    type: "str"
+    default: "story_draft_"
+    description: "Prefix for storage keys"
+
+  compress_drafts:
+    required: false
+    type: "bool"
+    default: false
+    description: "Compress draft data before storing"
+
+server:
+  api_endpoint:
+    required: true
+    type: "str"
+    default: "/api/stories"
+    description: "API endpoint for saving/publishing stories"
+
+  timeout_ms:
+    required: false
+    type: "int"
+    default: 10000
+    min: 2000
+    max: 30000
+    description: "Server request timeout in milliseconds"
+
+  retry_attempts:
+    required: false
+    type: "int"
+    default: 3
+    min: 0
+    max: 5
+    description: "Number of retry attempts on server failure"
+
+ui:
+  theme:
+    required: false
+    type: "str"
+    default: "light"
+    enum: ["light", "dark", "auto"]
+    description: "UI theme for admin panel"
+
+  show_timestamps:
+    required: false
+    type: "bool"
+    default: true
+    description: "Show timestamps in auto-save status indicator"
+
+  toast_duration_ms:
+    required: false
+    type: "int"
+    default: 3000
+    min: 1000
+    max: 10000
+    description: "Duration for toast notifications"
+
+logging:
+  enabled:
+    required: false
+    type: "bool"
+    default: true
+    description: "Enable logging for auto-save events"
+
+  level:
+    required: false
+    type: "str"
+    default: "info"
+    enum: ["debug", "info", "warn", "error"]
+    description: "Logging level"
+
+  max_log_entries:
+    required: false
+    type: "int"
+    default: 100
+    min: 10
+    max: 500
+    description: "Maximum number of log entries to retain"
