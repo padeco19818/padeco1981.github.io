@@ -1,1 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story - StoryHub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Georgia', serif;
+            background: #faf9f8;
+            color: #1a1a2e;
+        }
+
+        .nav-bar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+            color: #1a1a2e;
+        }
+
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .story-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .story-category {
+            display: inline-block;
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 0.25rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .story-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .story-meta {
+            color: #666;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .story-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #333;
+        }
+
+        .story-content p {
+            margin-bottom: 1.5rem;
+        }
+
+        .story-tags {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: #f0f0f0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 3rem;
+            color: #f44336;
+        }
+
+        .footer {
+            background: #1a1a2e;
+            color: #888;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .story-title { font-size: 1.8rem; }
+            .story-content { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="index.html" class="logo">📚 StoryHub</a>
+        <a href="index.html" class="back-link">← Back to Home</a>
+    </div>
+
+    <div class="container" id="story-container">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading story...</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 StoryHub. All rights reserved.</p>
+    </div>
+
+    <script>
+        // Get story ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const storyId = urlParams.get('id');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (storyId) {
+                loadStory(storyId);
+            } else {
+                showError('No story specified');
+            }
+        });
+
+        async function loadStory(id) {
+            try {
+                const response = await fetch('/api/save-story.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const story = data.stories.find(s => s.id === id);
+                    if (story) {
+                        displayStory(story);
+                    } else {
+                        showError('Story not found');
+                    }
+                } else {
+                    showError('Unable to load story');
+                }
+            } catch (error) {
+                console.error('Error loading story:', error);
+                showError('Failed to load story. Please try again.');
+            }
+        }
+
+        function displayStory(story) {
+            const container = document.getElementById('story-container');
+            
+            // Parse tags
+            const tags = story.tags ? story.tags.split(',').map(t => t.trim()) : [];
+            
+            container.innerHTML = `
+                <div class="story-header">
+                    <span class="story-category">${story.category || 'General'}</span>
+                    <h1 class="story-title">${escapeHtml(story.title)}</h1>
+                    <div class="story-meta">
+                        📅 ${formatDate(story.createdAt)} • 
+                        ✏️ Last updated ${formatDate(story.updatedAt || story.createdAt)}
+                    </div>
+                </div>
+                <div class="story-content">
+                    ${formatContent(story.content)}
+                </div>
+                ${tags.length > 0 ? `
+                    <div class="story-tags">
+                        ${tags.map(tag => `<span class="tag">#${escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                ` : ''}
+            `;
+            
+            // Update page title
+            document.title = `${story.title} - StoryHub`;
+        }
+
+        function formatContent(content) {
+            // Convert line breaks to paragraphs
+            if (!content) return '<p>No content available.</p>';
+            
+            // If content already has HTML tags, return as is
+            if (content.includes('<p>') || content.includes('<br>')) {
+                return content;
+            }
+            
+            // Otherwise, convert line breaks to paragraphs
+            const paragraphs = content.split(/\n\s*\n/);
+            return paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Recently';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('story-container');
+            container.innerHTML = `
+                <div class="error-message">
+                    <h2>⚠️ ${message}</h2>
+                    <p><a href="index.html" style="color: #667eea;">Return to homepage →</a></p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
