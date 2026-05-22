@@ -1,1 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryHub - Read Amazing Stories</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Georgia', serif;
+            background: #faf9f8;
+            color: #1a1a2e;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-links a {
+            color: #333;
+            text-decoration: none;
+            margin-right: 1.5rem;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            width: 250px;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Stories Grid */
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .story-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .story-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .story-card-content {
+            padding: 1.5rem;
+        }
+
+        .story-category {
+            display: inline-block;
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .story-title {
+            font-size: 1.35rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            color: #1a1a2e;
+        }
+
+        .story-excerpt {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .story-meta {
+            font-size: 0.8rem;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .read-more {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* Loading & Empty States */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem;
+            color: #999;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1a1a2e;
+            color: #888;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .stories-grid { grid-template-columns: 1fr; }
+            .nav-bar { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📚 StoryHub</h1>
+        <p>Discover amazing stories from our talented writers</p>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-links">
+            <a href="#" onclick="loadStories('all')">All Stories</a>
+            <a href="#" onclick="loadStories('technology')">Technology</a>
+            <a href="#" onclick="loadStories('lifestyle')">Lifestyle</a>
+            <a href="#" onclick="loadStories('travel')">Travel</a>
+            <a href="#" onclick="loadStories('food')">Food</a>
+        </div>
+        <input type="text" class="search-box" id="search-input" placeholder="Search stories..." onkeyup="searchStories()">
+    </div>
+
+    <div class="container">
+        <div class="hero">
+            <h2>✨ Welcome to StoryHub</h2>
+            <p>Read, learn, and get inspired by stories from around the world</p>
+        </div>
+
+        <div id="stories-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading stories...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 StoryHub. All rights reserved.</p>
+    </div>
+
+    <script>
+        let allStories = [];
+
+        // Load stories on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStories('all');
+        });
+
+        async function loadStories(category = 'all') {
+            const container = document.getElementById('stories-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading stories...</p></div>';
+            
+            try {
+                const response = await fetch('/api/save-story.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allStories = data.stories;
+                    displayStories(allStories, category);
+                } else {
+                    container.innerHTML = '<div class="empty-state">No stories found. Check back later!</div>';
+                }
+            } catch (error) {
+                console.error('Error loading stories:', error);
+                container.innerHTML = '<div class="empty-state">⚠️ Unable to load stories. Please try again later.</div>';
+            }
+        }
+
+        function displayStories(stories, category = 'all') {
+            const container = document.getElementById('stories-container');
+            
+            let filteredStories = stories;
+            if (category !== 'all') {
+                filteredStories = stories.filter(story => 
+                    story.category?.toLowerCase() === category.toLowerCase()
+                );
+            }
+            
+            if (filteredStories.length === 0) {
+                container.innerHTML = '<div class="empty-state">📖 No stories in this category yet.</div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="stories-grid">
+                    ${filteredStories.map(story => `
+                        <div class="story-card" onclick="viewStory('${story.id}')">
+                            <div class="story-card-content">
+                                <span class="story-category">${story.category || 'General'}</span>
+                                <h3 class="story-title">${escapeHtml(story.title)}</h3>
+                                <p class="story-excerpt">${getExcerpt(story.content)}</p>
+                                <div class="story-meta">
+                                    <span>📅 ${formatDate(story.createdAt)}</span>
+                                    <span class="read-more">Read more →</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function searchStories() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            if (!searchTerm) {
+                displayStories(allStories, 'all');
+                return;
+            }
+            
+            const filtered = allStories.filter(story => 
+                story.title.toLowerCase().includes(searchTerm) || 
+                story.content.toLowerCase().includes(searchTerm) ||
+                (story.tags && story.tags.toLowerCase().includes(searchTerm))
+            );
+            
+            displayStories(filtered, 'all');
+        }
+
+        function viewStory(storyId) {
+            window.location.href = `story.html?id=${storyId}`;
+        }
+
+        function getExcerpt(content, maxLength = 150) {
+            const text = content.replace(/<[^>]*>/g, '');
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Recent';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
