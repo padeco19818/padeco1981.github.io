@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PADECO NEWS — Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f2f5; display: flex; min-height: 100vh; }
+        
+        /* SIDEBAR */
+        .sidebar { width: 260px; background: #0f3460; color: white; padding: 30px 20px; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; }
+        .sidebar h2 { font-size: 1.5rem; margin-bottom: 30px; text-align: center; letter-spacing: 1px; }
+        .sidebar nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .sidebar nav a { color: #b0c4de; text-decoration: none; padding: 12px 18px; border-radius: 10px; transition: all 0.3s; font-size: 1rem; display: flex; align-items: center; gap: 12px; }
+        .sidebar nav a:hover { background: #1a4972; color: white; }
+        .sidebar nav a.active { background: #1a4972; color: white; font-weight: 600; }
+        .logout-btn { margin-top: auto; background: transparent; border: 1px solid #b0c4de; color: #b0c4de; padding: 12px; border-radius: 10px; cursor: pointer; font-size: 1rem; transition: all 0.3s; text-align: center; }
+        .logout-btn:hover { background: #c0392b; border-color: #c0392b; color: white; }
+
+        /* MAIN CONTENT */
+        .main-content { margin-left: 260px; flex: 1; padding: 30px; min-height: 100vh; }
+        .main-content h1 { font-size: 2rem; color: #0f3460; margin-bottom: 25px; }
+
+        /* CARDS / STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .stat-card h3 { font-size: 2rem; color: #0f3460; }
+        .stat-card p { color: #888; margin-top: 5px; font-size: 0.95rem; }
+
+        /* TABLE */
+        .table-container { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 14px 12px; background: #f7f9fc; color: #0f3460; font-weight: 600; border-bottom: 2px solid #e0e4e8; }
+        td { padding: 14px 12px; border-bottom: 1px solid #eef1f5; color: #333; }
+        tr:hover td { background: #f8faff; }
+        .actions { display: flex; gap: 8px; }
+        .btn { padding: 6px 16px; border: none; border-radius: 30px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+        .btn-edit { background: #e8f0fe; color: #0f3460; }
+        .btn-edit:hover { background: #0f3460; color: white; }
+        .btn-delete { background: #fde8e8; color: #c0392b; }
+        .btn-delete:hover { background: #c0392b; color: white; }
+        .btn-add { background: #0f3460; color: white; padding: 10px 25px; border-radius: 30px; display: inline-block; margin-bottom: 20px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; }
+        .btn-add:hover { background: #16213e; }
+        .btn-primary { background: #0f3460; color: white; padding: 10px 30px; border-radius: 30px; border: none; cursor: pointer; font-weight: 600; font-size: 1rem; }
+        .btn-primary:hover { background: #16213e; }
+
+        /* FORM MODAL */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: white; border-radius: 20px; padding: 35px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal h2 { color: #0f3460; margin-bottom: 20px; }
+        .modal label { display: block; margin-top: 15px; font-weight: 600; color: #333; }
+        .modal input, .modal textarea, .modal select { width: 100%; padding: 12px 15px; margin-top: 6px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; transition: border 0.3s; }
+        .modal input:focus, .modal textarea:focus { border-color: #0f3460; outline: none; }
+        .modal textarea { min-height: 100px; resize: vertical; }
+        .modal .btn-group { display: flex; gap: 15px; margin-top: 25px; justify-content: flex-end; }
+        .btn-cancel { background: #eee; color: #555; padding: 10px 30px; border-radius: 30px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-cancel:hover { background: #ddd; }
+
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .status-badge { padding: 4px 14px; border-radius: 30px; font-size: 0.8rem; font-weight: 600; }
+        .status-badge.published { background: #e8f5e9; color: #2e7d32; }
+        .status-badge.draft { background: #fff3e0; color: #e65100; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; padding: 20px 15px; }
+            .main-content { margin-left: 200px; padding: 20px; }
+            .sidebar h2 { font-size: 1.2rem; }
+        }
+        @media (max-width: 600px) {
+            body { flex-direction: column; }
+            .sidebar { position: relative; width: 100%; min-height: auto; padding: 15px; }
+            .main-content { margin-left: 0; padding: 15px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>📊 PADECO ADMIN</h2>
+    <nav>
+        <a href="#" class="active" data-section="dashboard">📈 Dashboard</a>
+        <a href="#" data-section="pages">📄 Pages</a>
+        <a href="#" data-section="blog">📝 Blog Posts</a>
+        <a href="#" data-section="projects">🔧 Projects</a>
+        <a href="#" data-section="news">📰 News Articles</a>
+        <a href="#" data-section="users">👥 Users</a>
+        <a href="#" data-section="settings">⚙️ Settings</a>
+    </nav>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+    <h1 id="page-title">📈 Dashboard</h1>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="section-dashboard" class="page-section active">
+        <div class="stats-grid">
+            <div class="stat-card"><h3 id="stat-pages">4</h3><p>Pages</p></div>
+            <div class="stat-card"><h3 id="stat-blog">4</h3><p>Blog Posts</p></div>
+            <div class="stat-card"><h3 id="stat-projects">4</h3><p>Projects</p></div>
+            <div class="stat-card"><h3 id="stat-news">3</h3><p>News Articles</p></div>
+            <div class="stat-card"><h3 id="stat-users">2</h3><p>Users</p></div>
+            <div class="stat-card"><h3 id="stat-visitors">12,450</h3><p>Visitors (this month)</p></div>
+        </div>
+        <div class="table-container">
+            <h3 style="margin-bottom:15px; color:#0f3460;">Recent Activity</h3>
+            <table>
+                <thead><tr><th>Action</th><th>Item</th><th>User</th><th>Date</th></tr></thead>
+                <tbody>
+                    <tr><td>Updated</td><td>Home Page</td><td>Admin</td><td>2 hours ago</td></tr>
+                    <tr><td>Created</td><td>AI Revolution Blog</td><td>Editor</td><td>5 hours ago</td></tr>
+                    <tr><td>Published</td><td>SolarMesh Project</td><td>Admin</td><td>1 day ago</td></tr>
+                    <tr><td>Deleted</td><td>Old News Article</td><td>Editor</td><td>2 days ago</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PAGES SECTION -->
+    <div id="section-pages" class="page-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <p style="color:#888;">Manage static pages (Home, About, etc.)</p>
+            <button class="btn-add" onclick="openModal('page')">+ Add Page</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Slug</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+                <tbody id="pages-table-body">
+                    <!-- Rows inserted by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- BLOG SECTION -->
+    <div id="section-blog" class="page-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <p style="color:#888;">Manage blog posts</p>
+            <button class="btn-add" onclick="openModal('blog')">+ New Blog Post</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="blog-table-body">
+                    <!-- Rows inserted by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PROJECTS SECTION -->
+    <div id="section-projects" class="page-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <p style="color:#888;">Manage projects</p>
+            <button class="btn-add" onclick="openModal('project')">+ Add Project</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="projects-table-body">
+                    <!-- Rows inserted by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- NEWS SECTION -->
+    <div id="section-news" class="page-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <p style="color:#888;">Manage news articles</p>
+            <button class="btn-add" onclick="openModal('news')">+ Add News Article</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Source</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="news-table-body">
+                    <!-- Rows inserted by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- USERS SECTION -->
+    <div id="section-users" class="page-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <p style="color:#888;">Manage users</p>
+            <button class="btn-add" onclick="openModal('user')">+ Add User</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="users-table-body">
+                    <!-- Rows inserted by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SETTINGS SECTION -->
+    <div id="section-settings" class="page-section">
+        <div class="table-container" style="max-width:600px;">
+            <h3 style="color:#0f3460; margin-bottom:20px;">Site Settings</h3>
+            <label>Site Name</label>
+            <input type="text" id="settings-site-name" value="PADECO NEWS" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:15px;">
+            <label>Site Description</label>
+            <input type="text" id="settings-site-desc" value="Your trusted source for tech, innovation & stories that matter" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:15px;">
+            <label>Admin Email</label>
+            <input type="email" id="settings-email" value="admin@padeco.news" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:15px;">
+            <label>Posts per page</label>
+            <input type="number" id="settings-per-page" value="10" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; margin-bottom:25px;">
+            <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL OVERLAY -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <h2 id="modal-title">Add New</h2>
+        <form id="modal-form">
+            <div id="modal-fields">
+                <!-- Fields populated by JS -->
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary">💾 Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ========= DATA STORES =========
+    let pages = [
+        { id: 1, title: 'Home', slug: 'home', status: 'published', updated: '2025-04-12' },
+        { id: 2, title: 'About', slug: 'about', status: 'published', updated: '2025-04-10' },
+        { id: 3, title: 'Blog', slug: 'blog', status: 'published', updated: '2025-04-08' },
+        { id: 4, title: 'Projects', slug: 'projects', status: 'published', updated: '2025-04-05' },
+    ];
+
+    let blogPosts = [
+        { id: 1, title: 'AI Revolution: What\'s Next?', author: 'Sarah Chen', date: '2025-04-12', status: 'published' },
+        { id: 2, title: 'Green Energy Breakthrough', author: 'Marcus Adebayo', date: '2025-04-10', status: 'published' },
+        { id: 3, title: 'Digital Privacy in 2025', author: 'Elena Rossi', date: '2025-04-08', status: 'published' },
+        { id: 4, title: 'The Rise of Bio-Computing', author: 'James Okafor', date: '2025-04-05', status: 'draft' },
+    ];
+
+    let projects = [
+        { id: 1, title: 'Open Data Africa', description: 'Open-source data platform for African countries', status: 'published' },
+        { id: 2, title: 'SolarMesh', description: 'Peer-to-peer energy trading network', status: 'published' },
+        { id: 3, title: 'CodeBridge Academy', description: 'Free coding bootcamps for displaced youth', status: 'published' },
+        { id: 4, title: 'NewsVerify', description: 'AI-powered fact-checking tool', status: 'draft' },
+    ];
+
+    let newsArticles = [
+        { id: 1, title: 'Tech Summit 2025 Kicks Off', source: 'TechCrunch', date: '2025-04-11', status: 'published' },
+        { id: 2, title: 'New Climate Policy Announced', source: 'Reuters', date: '2025-04-09', status: 'published' },
+        { id: 3, title: 'Startup Funding Hits Record High', source: 'Bloomberg', date: '2025-04-07', status: 'draft' },
+    ];
+
+    let users = [
+        { id: 1, name: 'Admin User', email: 'admin@padeco.news', role: 'Admin', status: 'Active' },
+        { id: 2, name: 'Editor User', email: 'editor@padeco.news', role: 'Editor', status: 'Active' },
+    ];
+
+    let nextIds = { page: 5, blog: 5, project: 5, news: 4, user: 3 };
+    let currentModalType = '';
+    let editingId = null;
+
+    // ========= NAVIGATION =========
+    document.querySelectorAll('.sidebar nav a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            const section = this.dataset.section;
+            document.getElementById('section-' + section).classList.add('active');
+            document.getElementById('page-title').textContent = this.textContent.trim();
+            if (section === 'dashboard') updateDashboardStats();
+        });
+    });
+
+    // ========= RENDER TABLES =========
+    function renderTable(type) {
+        const bodies = {
+            page: 'pages-table-body',
+            blog: 'blog-table-body',
+            project: 'projects-table-body',
+            news: 'news-table-body',
+            user: 'users-table-body'
+        };
+        const stores = { page: pages, blog: blogPosts, project: projects, news: newsArticles, user: users };
+        const tbody = document.getElementById(bodies[type]);
+        if (!tbody) return;
+        const items = stores[type];
+        tbody.innerHTML = items.map(item => {
+            if (type === 'page') {
+                return `<tr>
+                    <td>${item.id}</td>
+                    <td><strong>${item.title}</strong></td>
+                    <td>/${item.slug}</td>
+                    <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                    <td>${item.updated}</td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editItem('${type}', ${item.id})">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${type}', ${item.id})">🗑️ Delete</button>
+                    </td>
+                </tr>`;
+            } else if (type === 'blog') {
+                return `<tr>
+                    <td>${item.id}</td>
+                    <td><strong>${item.title}</strong></td>
+                    <td>${item.author}</td>
+                    <td>${item.date}</td>
+                    <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editItem('${type}', ${item.id})">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${type}', ${item.id})">🗑️ Delete</button>
+                    </td>
+                </tr>`;
+            } else if (type === 'project') {
+                return `<tr>
+                    <td>${item.id}</td>
+                    <td><strong>${item.title}</strong></td>
+                    <td>${item.description.substring(0, 40)}...</td>
+                    <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editItem('${type}', ${item.id})">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${type}', ${item.id})">🗑️ Delete</button>
+                    </td>
+                </tr>`;
+            } else if (type === 'news') {
+                return `<tr>
+                    <td>${item.id}</td>
+                    <td><strong>${item.title}</strong></td>
+                    <td>${item.source}</td>
+                    <td>${item.date}</td>
+                    <td><span class="status-badge ${item.status}">${item.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editItem('${type}', ${item.id})">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${type}', ${item.id})">🗑️ Delete</button>
+                    </td>
+                </tr>`;
+            } else if (type === 'user') {
+                return `<tr>
+                    <td>${item.id}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.email}</td>
+                    <td>${item.role}</td>
+                    <td><span class="status-badge">${item.status}</span></td>
+                    <td class="actions">
+                        <button class="btn btn-edit" onclick="editItem('${type}', ${item.id})">✏️ Edit</button>
+                        <button class="btn btn-delete" onclick="deleteItem('${type}', ${item.id})">🗑️ Delete</button>
+                    </td>
+                </tr>`;
+            }
+        }).join('');
+    }
+
+    function updateDashboardStats() {
+        document.getElementById('stat-pages').textContent = pages.length;
+        document.getElementById('stat-blog').textContent = blogPosts.length;
+        document.getElementById('stat-projects').textContent = projects.length;
+        document.getElementById('stat-news').textContent = newsArticles.length;
+        document.getElementById('stat-users').textContent = users.length;
+    }
+
+    // ========= MODAL =========
+    function openModal(type, id = null) {
+        currentModalType = type;
+        editingId = id;
+        const overlay = document.getElementById('modal-overlay');
+        const title = document.getElementById('modal-title');
+        const fields = document.getElementById('modal-fields');
+        
+        const labels = { page: 'Page', blog: 'Blog Post', project: 'Project', news: 'News Article', user: 'User' };
+        title.textContent = id ? `Edit ${labels[type]}` : `Add ${labels[type]}`;
+        
+        let html = '';
+        const item = id ? getItem(type, id) : null;
+
+        if (type === 'page') {
+            html = `
+                <label>Title</label>
+                <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+                <label>Slug</label>
+                <input type="text" id="f-slug" value="${item ? item.slug : ''}" required>
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="published" ${item && item.status === 'published' ? 'selected' : ''}>Published</option>
+                    <option value="draft" ${item && item.status === 'draft' ? 'selected' : ''}>Draft</option>
+                </select>
+            `;
+        } else if (type === 'blog') {
+            html = `
+                <label>Title</label>
+                <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+                <label>Author</label>
+                <input type="text" id="f-author" value="${item ? item.author : ''}" required>
+                <label>Date</label>
+                <input type="date" id="f-date" value="${item ? item.date : ''}" required>
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="published" ${item && item.status === 'published' ? 'selected' : ''}>Published</option>
+                    <option value="draft" ${item && item.status === 'draft' ? 'selected' : ''}>Draft</option>
+                </select>
+            `;
+        } else if (type === 'project') {
+            html = `
+                <label>Title</label>
+                <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+                <label>Description</label>
+                <textarea id="f-description" required>${item ? item.description : ''}</textarea>
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="published" ${item && item.status === 'published' ? 'selected' : ''}>Published</option>
+                    <option value="draft" ${item && item.status === 'draft' ? 'selected' : ''}>Draft</option>
+                </select>
+            `;
+        } else if (type === 'news') {
+            html = `
+                <label>Title</label>
+                <input type="text" id="f-title" value="${item ? item.title : ''}" required>
+                <label>Source</label>
+                <input type="text" id="f-source" value="${item ? item.source : ''}" required>
+                <label>Date</label>
+                <input type="date" id="f-date" value="${item ? item.date : ''}" required>
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="published" ${item && item.status === 'published' ? 'selected' : ''}>Published</option>
+                    <option value="draft" ${item && item.status === 'draft' ? 'selected' : ''}>Draft</option>
+                </select>
+            `;
+        } else if (type === 'user') {
+            html = `
+                <label>Name</label>
+                <input type="text" id="f-name" value="${item ? item.name : ''}" required>
+                <label>Email</label>
+                <input type="email" id="f-email" value="${item ? item.email : ''}" required>
+                <label>Role</label>
+                <select id="f-role">
+                    <option value="Admin" ${item && item.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                    <option value="Editor" ${item && item.role === 'Editor' ? 'selected' : ''}>Editor</option>
+                    <option value="Viewer" ${item && item.role === 'Viewer' ? 'selected' : ''}>Viewer</option>
+                </select>
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="Active" ${item && item.status === 'Active' ? 'selected' : ''}>Active</option>
+                    <option value="Inactive" ${item && item.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+                </select>
+            `;
+        }
+        fields.innerHTML = html;
+        overlay.classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+        editingId = null;
+    }
+
+    document.getElementById('modal-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const type = currentModalType;
+        const fields = {
+            title: document.getElementById('f-title')?.value || '',
+            slug: document.getElementById('f-slug')?.value || '',
+            author: document.getElementById('f-author')?.value || '',
+            date: document.getElementById('f-date')?.value || '',
+            description: document.getElementById('f-description')?.value || '',
+            source: document.getElementById('f-source')?.value || '',
+            name: document.getElementById('f-name')?.value || '',
+            email: document.getElementById('f-email')?.value || '',
+            role: document.getElementById('f-role')?.value || '',
+            status: document.getElementById('f-status')?.value || 'draft',
+        };
+
+        const stores = { page: pages, blog: blogPosts, project: projects, news: newsArticles, user: users };
+
+        if (editingId) {
+            // Edit existing
+            const item = getItem(type, editingId);
+            if (item) {
+                if (type === 'page') { item.title = fields.title; item.slug = fields.slug; item.status = fields.status; item.updated = new Date().toISOString().split('T')[0]; }
+                else if (type === 'blog') { item.title = fields.title; item.author = fields.author; item.date = fields.date; item.status = fields.status; }
+                else if (type === 'project') { item.title = fields.title; item.description = fields.description; item.status = fields.status; }
+                else if (type === 'news') { item.title = fields.title; item.source = fields.source; item.date = fields.date; item.status = fields.status; }
+                else if (type === 'user') { item.name = fields.name; item.email = fields.email; item.role = fields.role; item.status = fields.status; }
+            }
+        } else {
+            // Add new
+            const newItem = { id: nextIds[type]++ };
+            if (type === 'page') { newItem.title = fields.title; newItem.slug = fields.slug; newItem.status = fields.status; newItem.updated = new Date().toISOString().split('T')[0]; }
+            else if (type === 'blog') { newItem.title = fields.title; newItem.author = fields.author; newItem.date = fields.date; newItem.status = fields.status; }
+            else if (type === 'project') { newItem.title = fields.title; newItem.description = fields.description; newItem.status = fields.status; }
+            else if (type === 'news') { newItem.title = fields.title; newItem.source = fields.source; newItem.date = fields.date; newItem.status = fields.status; }
+            else if (type === 'user') { newItem.name = fields.name; newItem.email = fields.email; newItem.role = fields.role; newItem.status = fields.status; }
+            stores[type].push(newItem);
+        }
+
+        renderTable(type);
+        updateDashboardStats();
+        closeModal();
+    });
+
+    function getItem(type, id) {
+        const stores = { page: pages, blog: blogPosts, project: projects, news: newsArticles, user: users };
+        return stores[type].find(i => i.id === id);
+    }
+
+    function editItem(type, id) {
+        openModal(type, id);
+    }
+
+    function deleteItem(type, id) {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        const stores = { page: pages, blog: blogPosts, project: projects, news: newsArticles, user: users };
+        const idx = stores[type].findIndex(i => i.id === id);
+        if (idx > -1) stores[type].splice(idx, 1);
+        renderTable(type);
+        updateDashboardStats();
+    }
+
+    function saveSettings() {
+        alert('✅ Settings saved successfully!');
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            alert('You have been logged out.');
+            // In a real app, redirect to login page
+        }
+    }
+
+    // ========= INIT =========
+    ['page', 'blog', 'project', 'news', 'user'].forEach(renderTable);
+    updateDashboardStats();
+</script>
+
+</body>
+</html>
