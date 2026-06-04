@@ -1,1 +1,260 @@
+/**
+ * Complete Story Management System
+ * Handles saving and loading stories from server
+ */
 
+// Fetch with timeout and abort capability
+async function fetchWithTimeout(url, options = {}, timeout = 10000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, { 
+            ...options, 
+            signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timeout after ${timeout}ms`);
+        }
+        throw error;
+    }
+}
+
+// Save a story to the server
+async function saveStoryToServer(storyData) {
+    try {
+        // Validate input
+        if (!storyData || typeof storyData !== 'object') {
+            throw new Error('Invalid story data provided');
+        }
+        
+        if (!storyData.title || !storyData.content) {
+            throw new Error('Story must have both title and content');
+        }
+        
+        const response = await fetchWithTimeout('/api/save-story.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(storyData)
+        }, 15000);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result || typeof result !== 'object') {
+            throw new Error('Invalid server response');
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Failed to save story:', error.message);
+        return {
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        };
+    }
+}
+
+// Load all stories from the server
+async function loadStoriesFromServer(signal = null) {
+    try {
+        const options = {};
+        if (signal) {
+            options.signal = signal;
+        }
+        
+        const response = await fetchWithTimeout('/api/save-story.php', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            ...options
+        }, 10000);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result || typeof result !== 'object') {
+            throw new Error('Invalid server response');
+        }
+        
+        if (!result.stories) {
+            result.stories = [];
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('Failed to load stories:', error.message);
+        return {
+            success: false,
+            error: error.message,
+            stories: [],
+            timestamp: new Date().toISOString()
+        };
+    }
+}
+
+// Escape HTML to prevent XSS attacks
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\//g, '&#x2F;');
+}
+
+// Display stories in the UI
+function displayStories(stories) {
+    const container = document.getElementById('storiesContainer');
+    if (!container) return;
+    
+    if (!stories || stories.length === 0) {
+        container.innerHTML = '<div class="no-stories">No stories yet. Be the first to publish!</div>';
+        return;
+    }
+    
+    container.innerHTML = stories.map(story => `
+        <div class="story-card" data-id="${escapeHtml(story.id)}">
+            <h3>${escapeHtml(story.title)}</h3>
+            <div class="story-content">${escapeHtml(story.content)}</div>
+            <div class="story-meta">
+                <small>Published: ${story.createdAt ? new Date(story.createdAt).toLocaleString() : 'Unknown date'}</small>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Show status message
+function showStatus(message, type = 'info') {
+    const statusDiv = document.getElementById('status');
+    if (!statusDiv) return;
+    
+    statusDiv.textContent = message;
+    statusDiv.className = `status ${type}`;
+    statusDiv.style.display = 'block';
+    
+    if (type !== 'loading') {
+        setTimeout(() => {
+            if (statusDiv.textContent === message) {
+                statusDiv.style.display = 'none';
+            }
+        }, 3000);
+    }
+}
+
+// Load and display stories
+async function refreshStoriesList() {
+    const loadBtn = document.getElementById('loadBtn');
+    
+    try {
+        if (loadBtn) loadBtn.disabled = true;
+        showStatus('Loading stories...', 'loading');
+        
+        const result = await loadStoriesFromServer();
+        
+        if (result.stories) {
+            displayStories(result.stories);
+            showStatus(`Loaded ${result.stories.length} stories successfully`, 'success');
+        } else if (result.error) {
+            showStatus('Error: ' + result.error, 'error');
+            displayStories([]);
+        }
+    } catch (error) {
+        showStatus('Failed to load stories: ' + error.message, 'error');
+        displayStories([]);
+    } finally {
+        if (loadBtn) loadBtn.disabled = false;
+    }
+}
+
+// Publish a new story
+async function publishStory() {
+    const titleInput = document.getElementById('titleInput');
+    const contentInput = document.getElementById('contentInput');
+    const publishBtn = document.getElementById('publishBtn');
+    
+    const title = titleInput ? titleInput.value.trim() : '';
+    const content = contentInput ? contentInput.value.trim() : '';
+    
+    if (!title || !content) {
+        showStatus('Please enter both title and content', 'error');
+        return;
+    }
+    
+    try {
+        if (publishBtn) publishBtn.disabled = true;
+        showStatus('Publishing story...', 'loading');
+        
+        const result = await saveStoryToServer({ title, content });
+        
+        if (result.success) {
+            showStatus('Story published successfully!', 'success');
+            if (titleInput) titleInput.value = '';
+            if (contentInput) contentInput.value = '';
+            await refreshStoriesList();
+        } else {
+            showStatus('Failed to publish: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+    } finally {
+        if (publishBtn) publishBtn.disabled = false;
+    }
+}
+
+// Initialize the application
+function initStoryManager() {
+    const publishBtn = document.getElementById('publishBtn');
+    const loadBtn = document.getElementById('loadBtn');
+    
+    if (publishBtn) {
+        publishBtn.addEventListener('click', publishStory);
+    }
+    
+    if (loadBtn) {
+        loadBtn.addEventListener('click', refreshStoriesList);
+    }
+    
+    // Auto-load stories on page load
+    refreshStoriesList();
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        saveStoryToServer,
+        loadStoriesFromServer,
+        publishStory,
+        refreshStoriesList,
+        initStoryManager,
+        escapeHtml,
+        displayStories,
+        showStatus
+    };
+}
+
+// Auto-initialize when DOM is ready
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', initStoryManager);
+}
